@@ -28,7 +28,7 @@ jobs:
             autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
-            build-essential ccache
+            build-essential ccache libtinfo5
 
       - name: Install Python dependencies
         run: |
@@ -41,7 +41,7 @@ jobs:
           printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n33b6a2b64607f11b759f320ef9dff4ae5c47d97a" \
             > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
           printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
-            > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+            > ~/.buildozer/android/platform/android-sdk/licenses/android-preview-license
           printf "\n601085b94cd77f0b54ff86406957099ebe79c4d7" \
             > ~/.buildozer/android/platform/android-sdk/licenses/android-googletv-license
           printf "\nd975f751698a77b662f1254ddbeed3901e976f5a" \
@@ -51,19 +51,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          key: buildozer-${{ runner.os }}-${{ hashFiles('**/buildozer.spec') }}
           restore-keys: |
             buildozer-${{ runner.os }}-
 
       - name: Build APK
         run: |
-          yes | buildozer android debug 2>&1 | tee build.log
+          # Navigate to the folder containing your source files and buildozer.spec
+          cd hermez_sender/
+          yes | buildozer android debug 2>&1 | tee ../build.log
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: hermez-link-debug
-          path: bin/*.apk
+          path: hermez_sender/bin/*.apk
           retention-days: 30
 
       - name: Upload build log always
