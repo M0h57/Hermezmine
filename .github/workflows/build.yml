@@ -9,7 +9,6 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     env:
-      # Explicitly opt into Node.js 24 to clear the deprecation warnings
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
@@ -21,23 +20,6 @@ jobs:
         with:
           python-version: "3.10"
 
-      # Safely allocates extra space and handles missing directories without crashing
-      - name: Free disk space and setup swap
-        run: |
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf "/usr/local/share/boost" || true
-          
-          # Safely build a 10GB swap file for NDK compilation
-          sudo swapoff -a || true
-          sudo fallocate -l 10G /swapfile || true
-          sudo chmod 600 /swapfile || true
-          sudo mkswap /swapfile || true
-          sudo swapon /swapfile || true
-          sudo sysctl vm.swappiness=10
-
-      # System dependencies setup
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -53,18 +35,6 @@ jobs:
           pip install --upgrade pip
           pip install buildozer cython virtualenv
 
-      - name: Pre-accept Android SDK licenses
-        run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n33b6a2b64607f11b759f320ef9dff4ae5c47d97a" \
-            > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
-            > ~/.buildozer/android/platform/android-sdk/licenses/android-preview-license
-          printf "\n601085b94cd77f0b54ff86406957099ebe79c4d7" \
-            > ~/.buildozer/android/platform/android-sdk/licenses/android-googletv-license
-          printf "\nd975f751698a77b662f1254ddbeed3901e976f5a" \
-            > ~/.buildozer/android/platform/android-sdk/licenses/intel-android-extra-license
-
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
@@ -74,9 +44,6 @@ jobs:
             buildozer-${{ runner.os }}-
 
       - name: Build APK
-        env:
-          _JAVA_OPTIONS: "-Xmx4096m -Xms1024m"
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m"
         run: |
           yes | buildozer android debug 2>&1 | tee build.log
 
