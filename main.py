@@ -17,6 +17,7 @@ from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.core.window import Window
 from kivy.utils import get_color_from_hex
+from kivy.graphics import Color, Line
 
 # ── Colours ──────────────────────────────────────────────────────────────────
 BG       = get_color_from_hex("#0d0f14")
@@ -36,17 +37,23 @@ DATA_FILE = os.path.join(os.path.expanduser("~"), ".hermez_data.json")
 
 def load_data():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE) as f:
-            return json.load(f)
+        try:
+            with open(DATA_FILE) as f:
+                return json.load(f)
+        except Exception:
+            pass
     return {"ips": [], "ports": ["9021", "9090"], "last_payload": ""}
 
 def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    try:
+        with open(DATA_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def make_btn(text, bg=CARD, color=TEXT, bold=False, height=dp(48), font_size=dp(14)):
-    btn = Button(
+    return Button(
         text=text,
         size_hint_y=None,
         height=height,
@@ -54,10 +61,8 @@ def make_btn(text, bg=CARD, color=TEXT, bold=False, height=dp(48), font_size=dp(
         background_color=bg,
         color=color,
         bold=bold,
-        font_size=font_size,
-        font_name="RobotoMono"
+        font_size=font_size
     )
-    return btn
 
 def make_input(hint="", text="", password=False):
     return TextInput(
@@ -71,7 +76,6 @@ def make_input(hint="", text="", password=False):
         hint_text_color=MUTED,
         cursor_color=ACCENT,
         padding=[dp(12), dp(10)],
-        font_name="RobotoMono",
         font_size=dp(14),
         password=password
     )
@@ -83,7 +87,6 @@ def section_label(text):
         size_hint_y=None,
         height=dp(28),
         halign="left",
-        font_name="RobotoMono",
         font_size=dp(12)
     )
 
@@ -102,7 +105,7 @@ class MainScreen(Screen):
         hdr = BoxLayout(size_hint_y=None, height=dp(52), spacing=dp(8))
         title = Label(
             text="[b][color=#00c8ff]HERMEZ[/color][color=#ffffff] LINK[/color][/b]",
-            markup=True, font_name="RobotoMono", font_size=dp(22),
+            markup=True, font_size=dp(22),
             size_hint_x=0.7, halign="left"
         )
         title.bind(size=title.setter("text_size"))
@@ -113,9 +116,15 @@ class MainScreen(Screen):
         hdr.add_widget(mgr_btn)
         root.add_widget(hdr)
 
-        # ── Divider
-        root.add_widget(Label(size_hint_y=None, height=dp(1),
-                              canvas_before=self._divider_instruction()))
+        # ── Corrected Native Divider Line Widget
+        divider = Label(size_hint_y=None, height=dp(2))
+        def draw_divider(instance, value):
+            instance.canvas.before.clear()
+            with instance.canvas.before:
+                Color(*MUTED[:3], 0.3)
+                Line(points=[instance.x, instance.y, instance.x + instance.width, instance.y], width=1)
+        divider.bind(size=draw_divider, pos=draw_divider)
+        root.add_widget(divider)
 
         # ── IP row
         root.add_widget(section_label("TARGET IP"))
@@ -147,7 +156,7 @@ class MainScreen(Screen):
             text=self._short_path(self.selected_payload) or "No file selected",
             color=MUTED if not self.selected_payload else TEXT,
             size_hint_y=None, height=dp(36),
-            halign="left", font_name="RobotoMono", font_size=dp(12),
+            halign="left", font_size=dp(12),
             text_size=(Window.width - dp(32), None)
         )
         browse_btn = make_btn("📂  BROWSE PAYLOAD", bg=SURFACE, color=ACCENT,
@@ -168,7 +177,7 @@ class MainScreen(Screen):
         self.log_label = Label(
             text="Ready.\n",
             color=TEXT, markup=True,
-            size_hint_y=None, font_name="RobotoMono", font_size=dp(11),
+            size_hint_y=None, font_size=dp(11),
             halign="left", valign="top"
         )
         self.log_label.bind(texture_size=self.log_label.setter("size"))
@@ -176,11 +185,6 @@ class MainScreen(Screen):
         root.add_widget(log_scroll)
 
         self.add_widget(root)
-
-    def _divider_instruction(self):
-        from kivy.graphics import Color, Rectangle
-        # returns nothing — divider done via canvas in BoxLayout child
-        return None
 
     def _short_path(self, path):
         if not path:
@@ -324,7 +328,7 @@ class ManageScreen(Screen):
         back.size_hint_x = 0.3
         back.bind(on_press=lambda *_: self.go_back())
         title = Label(text="[b][color=#00c8ff]MANAGE[/color][/b]",
-                      markup=True, font_name="RobotoMono", font_size=dp(20))
+                      markup=True, font_size=dp(20))
         hdr.add_widget(back)
         hdr.add_widget(title)
         self.root_layout.add_widget(hdr)
@@ -376,7 +380,7 @@ class ManageScreen(Screen):
         grid.clear_widgets()
         for item in items:
             row = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(6))
-            lbl = Label(text=item, color=TEXT, font_name="RobotoMono",
+            lbl = Label(text=item, color=TEXT,
                         font_size=dp(13), halign="left", size_hint_x=0.75)
             lbl.bind(size=lbl.setter("text_size"))
             del_btn = make_btn("✕", bg=DANGER, color=TEXT,
