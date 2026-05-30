@@ -33,7 +33,7 @@ jobs:
           sudo swapon /swapfile
           sudo sysctl vm.swappiness=10
 
-       Tarjan dependency setup
+      # System dependencies setup
       - name: Install system dependencies
         run: |
           sudo apt-get update
