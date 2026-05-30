@@ -18,6 +18,22 @@ jobs:
         with:
           python-version: "3.10"
 
+      # Bumps virtual memory capacity so GCC/Clang don't crash the runner
+      - name: Free disk space and setup swap
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          
+          # Create a 10GB swapfile
+          sudo fallocate -l 10G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          sudo sysctl vm.swappiness=10
+
+       Tarjan dependency setup
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -54,8 +70,11 @@ jobs:
             buildozer-${{ runner.os }}-
 
       - name: Build APK
+        env:
+          # Bumps Java heap space memory limits to prevent Gradle out-of-memory errors
+          _JAVA_OPTIONS: "-Xmx4096m -Xms1024m"
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m"
         run: |
-          # Running directly from root since buildozer.spec is here
           yes | buildozer android debug 2>&1 | tee build.log
 
       - name: Upload APK artifact
