@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    env:
+      # Explicitly opt into Node.js 24 to clear the deprecation warnings
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
@@ -18,19 +21,20 @@ jobs:
         with:
           python-version: "3.10"
 
-      # Bumps virtual memory capacity so GCC/Clang don't crash the runner
+      # Safely allocates extra space and handles missing directories without crashing
       - name: Free disk space and setup swap
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf "/usr/local/share/boost" || true
           
-          # Create a 10GB swapfile
-          sudo fallocate -l 10G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
+          # Safely build a 10GB swap file for NDK compilation
+          sudo swapoff -a || true
+          sudo fallocate -l 10G /swapfile || true
+          sudo chmod 600 /swapfile || true
+          sudo mkswap /swapfile || true
+          sudo swapon /swapfile || true
           sudo sysctl vm.swappiness=10
 
       # System dependencies setup
@@ -71,7 +75,6 @@ jobs:
 
       - name: Build APK
         env:
-          # Bumps Java heap space memory limits to prevent Gradle out-of-memory errors
           _JAVA_OPTIONS: "-Xmx4096m -Xms1024m"
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m"
         run: |
